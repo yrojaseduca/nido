@@ -15,6 +15,7 @@ use App\Services\InvitationService;
 use App\Services\EventService;
 use App\Services\MemberService;
 use App\Services\AssignmentService;
+use App\Services\TaskDetailService;
 
 return static function (Base $f3): void {
     $f3->route('GET /api/health', static function (): void {
@@ -279,6 +280,34 @@ return static function (Base $f3): void {
         if ($user === null) { JsonResponse::send(['error' => 'Unauthenticated'], 401); return; }
         $decision = (string) (JsonRequest::body()['decision'] ?? '');
         $updated = (new AssignmentService())->decide((int) $f3->get('PARAMS.assignmentId'), (int) $user['id'], $decision);
+        JsonResponse::send(['data' => ['updated' => $updated]], $updated ? 200 : 404);
+    });
+
+    $f3->route('GET /api/workspaces/@workspaceId/tasks/@taskId', static function (Base $f3): void {
+        $user = (new SessionAuthenticator())->authenticate((string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ''));
+        $workspaceId = (string) $f3->get('PARAMS.workspaceId');
+        if ($user === null) { JsonResponse::send(['error' => 'Unauthenticated'], 401); return; }
+        $task = (new TaskDetailService())->get($workspaceId, (int) $f3->get('PARAMS.taskId'), (int) $user['id']);
+        JsonResponse::send(['data' => $task], $task === null ? 404 : 200);
+    });
+
+    $f3->route('POST /api/workspaces/@workspaceId/tasks/@taskId/checklist', static function (Base $f3): void {
+        $user = (new SessionAuthenticator())->authenticate((string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ''));
+        if ($user === null) { JsonResponse::send(['error' => 'Unauthenticated'], 401); return; }
+        try { $item = (new TaskDetailService())->addChecklist((string) $f3->get('PARAMS.workspaceId'), (int) $f3->get('PARAMS.taskId'), (int) $user['id'], trim((string) (JsonRequest::body()['title'] ?? ''))); JsonResponse::send(['data' => $item], 201); } catch (\Throwable $exception) { JsonResponse::send(['error' => $exception->getMessage()], 422); }
+    });
+
+    $f3->route('POST /api/workspaces/@workspaceId/tasks/@taskId/comments', static function (Base $f3): void {
+        $user = (new SessionAuthenticator())->authenticate((string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ''));
+        if ($user === null) { JsonResponse::send(['error' => 'Unauthenticated'], 401); return; }
+        try { $comment = (new TaskDetailService())->addComment((string) $f3->get('PARAMS.workspaceId'), (int) $f3->get('PARAMS.taskId'), (int) $user['id'], trim((string) (JsonRequest::body()['body'] ?? ''))); JsonResponse::send(['data' => $comment], 201); } catch (\Throwable $exception) { JsonResponse::send(['error' => $exception->getMessage()], 422); }
+    });
+
+    $f3->route('PATCH /api/workspaces/@workspaceId/tasks/@taskId/checklist/@itemId', static function (Base $f3): void {
+        $user = (new SessionAuthenticator())->authenticate((string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ''));
+        if ($user === null) { JsonResponse::send(['error' => 'Unauthenticated'], 401); return; }
+        $data = JsonRequest::body();
+        $updated = (new TaskDetailService())->updateChecklist((string) $f3->get('PARAMS.workspaceId'), (int) $f3->get('PARAMS.taskId'), (int) $f3->get('PARAMS.itemId'), (int) $user['id'], (bool) ($data['completed'] ?? false));
         JsonResponse::send(['data' => ['updated' => $updated]], $updated ? 200 : 404);
     });
 };

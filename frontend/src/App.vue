@@ -7,6 +7,7 @@ import { createInvitation, fetchInvitations, revokeInvitation } from './services
 import { createEvent, fetchEvents } from './services/events';
 import { fetchMembers, removeMember, updateMemberRole } from './services/members';
 import { decideAssignment, fetchPendingAssignments, proposeAssignment } from './services/assignments';
+import { addChecklistItem, addTaskComment, fetchTaskDetail, updateChecklistItem } from './services/task-details';
 
 const active = ref('Inicio');
 const homeSection = ref('workspaces');
@@ -30,6 +31,10 @@ const eventError = ref('');
 const members = ref([]);
 const memberError = ref('');
 const assignments = ref([]);
+const detailTask = ref(null);
+const detailError = ref('');
+const checklistTitle = ref('');
+const commentBody = ref('');
 const taskDueAt = ref('');
 const calendarView = ref('week');
 const calendarDate = ref('2026-10-22');
@@ -243,6 +248,29 @@ async function assignTask(task, event) {
     try { await proposeAssignment(workspaceStore.selectedId, task.id, Number(event.target.value)); event.target.value = ''; } catch (error) { memberError.value = error.message; }
 }
 
+async function openTask(task) {
+    if (!workspaceStore.selectedId || !task.id) return;
+    detailError.value = '';
+    try { detailTask.value = (await fetchTaskDetail(workspaceStore.selectedId, task.id)).data; } catch (error) { detailError.value = error.message; }
+}
+
+async function addChecklist() {
+    if (!checklistTitle.value.trim()) return;
+    const item = (await addChecklistItem(workspaceStore.selectedId, detailTask.value.id, checklistTitle.value.trim())).data;
+    detailTask.value.checklist.push(item); checklistTitle.value = '';
+}
+
+async function toggleChecklist(item) {
+    await updateChecklistItem(workspaceStore.selectedId, detailTask.value.id, item.id, !item.completed);
+    item.completed = item.completed ? 0 : 1;
+}
+
+async function addComment() {
+    if (!commentBody.value.trim()) return;
+    const comment = (await addTaskComment(workspaceStore.selectedId, detailTask.value.id, commentBody.value.trim())).data;
+    detailTask.value.comments.push(comment); commentBody.value = '';
+}
+
 async function toggleTask(task) {
     const nextStatus = task.done ? 'pending' : 'completed';
     task.done = !task.done;
@@ -296,6 +324,7 @@ async function toggleTask(task) {
             <section v-if="active === 'Balance'" class="content-view"><div class="section-heading"><h2>Balance</h2><button class="text-button">Semana⌄</button></div><div class="balance-card"><h3>Tiempo por persona</h3><div class="balance-row"><strong>Alex</strong><div><i style="width: 78%"></i></div><span>12 h</span></div><div class="balance-row"><strong>María</strong><div><i class="pink-bar" style="width: 62%"></i></div><span>10 h</span></div><div class="balance-row"><strong>Leo</strong><div><i class="orange-bar" style="width: 34%"></i></div><span>5 h</span></div></div><div class="balance-card"><h3>Tareas completadas</h3><strong class="balance-number">{{ tasks.filter((task) => task.done).length }} / {{ tasks.length }}</strong><p>El progreso del hogar se actualizará al completar tareas.</p></div></section>
             <section v-if="active === 'Mi hogar'" class="empty-view"><div class="empty-icon">♧</div><h2>Mi hogar</h2><div class="home-tabs"><button :class="{ selected: homeSection === 'workspaces' }" @click="homeSection = 'workspaces'">Hogares</button><button :class="{ selected: homeSection === 'invitations' }" @click="homeSection = 'invitations'">Invitaciones</button></div><template v-if="homeSection === 'workspaces'"><p v-if="!workspaceStore.workspaces.length">Crea tu primer hogar para empezar a organizarte.</p><button v-for="workspace in workspaceStore.workspaces" :key="workspace.id" class="workspace-row" @click="workspaceStore.select(workspace.id)">{{ workspace.name }} <span>{{ workspace.role }}</span></button><form class="workspace-create" @submit.prevent="createWorkspace"><input v-model="workspaceName" placeholder="Nombre del nuevo hogar"><button class="primary-button">Crear hogar</button><p v-if="workspaceError" class="auth-error">{{ workspaceError }}</p></form></template><div v-if="homeSection === 'members'" class="members-panel"><h3>Miembros del hogar</h3><p v-if="memberError" class="auth-error">{{ memberError }}</p><div v-for="member in members.filter((item) => item.active)" :key="member.id" class="member-row"><span><strong>{{ member.name }}</strong><small>{{ member.email }}</small></span><select :value="member.role" :disabled="workspaceStore.selectedWorkspace?.role !== 'admin'" @change="changeMemberRole(member, $event.target.value)"><option value="admin">Admin</option><option value="member">Miembro</option><option value="guest">Invitado</option></select><button v-if="workspaceStore.selectedWorkspace?.role === 'admin'" @click="kickMember(member)">Expulsar</button></div></div><div v-if="homeSection === 'invitations' && workspaceStore.selectedWorkspace?.role === 'admin'" class="invitation-panel"><h3>Invitar a tu hogar</h3><form @submit.prevent="sendInvitation"><input v-model="invitationEmail" type="email" required placeholder="email@ejemplo.com"><select v-model="invitationRole"><option value="member">Miembro</option><option value="guest">Invitado</option><option value="admin">Administrador</option></select><button class="primary-button">Enviar invitación</button><p v-if="invitationError" class="auth-error">{{ invitationError }}</p></form><div v-for="invitation in invitations" :key="invitation.id || invitation.token" class="invitation-row"><span>{{ invitation.email }} · {{ invitation.role }}</span><button v-if="invitation.status === 'pending'" @click="cancelInvitation(invitation)">Revocar</button><small>{{ invitation.status }}</small></div></div><p v-if="homeSection === 'invitations' && workspaceStore.selectedWorkspace?.role !== 'admin'" class="calendar-empty">Solo los administradores pueden gestionar invitaciones.</p></section>
         </main>
+        <div v-if="detailTask" class="modal-backdrop" @click.self="detailTask = null"><article class="task-detail"><button class="modal-close" @click="detailTask = null">×</button><h2>{{ detailTask.title }}</h2><p v-if="detailTask.instructions">{{ detailTask.instructions }}</p><h3>Checklist</h3><label v-for="item in detailTask.checklist" :key="item.id" class="checklist-item"><input type="checkbox" :checked="Boolean(item.completed)" @change="toggleChecklist(item)">{{ item.title }}</label><form @submit.prevent="addChecklist"><input v-model="checklistTitle" placeholder="Añadir elemento"><button class="primary-button">Añadir</button></form><h3>Comentarios</h3><p v-for="comment in detailTask.comments" :key="comment.id" class="task-comment"><strong>{{ comment.author }}</strong> {{ comment.body }}</p><form @submit.prevent="addComment"><input v-model="commentBody" placeholder="Escribe un comentario"><button class="primary-button">Comentar</button></form><p v-if="detailError" class="auth-error">{{ detailError }}</p></article></div>
         <button class="floating-action" aria-label="Crear tarea" @click="composerOpen = true">+</button>
         <nav class="bottom-nav"><button v-for="tab in tabs" :key="tab" class="nav-item" :class="{ active: active === tab }" @click="active = tab"><span class="nav-icon">{{ tab === 'Inicio' ? '⌂' : tab === 'Tareas' ? '✓' : tab === 'Balance' ? '◔' : tab === 'Calendario' ? '▣' : '♧' }}</span>{{ tab }}</button></nav>
         <div v-if="composerOpen" class="modal-backdrop" @click.self="composerOpen = false"><form class="task-composer" @submit.prevent="createTask($event.target.title.value)"><button type="button" class="modal-close" @click="composerOpen = false">×</button><h2>Nueva tarea</h2><p>Añade algo para {{ workspaceStore.selectedWorkspace?.name || 'Nuestro hogar' }}</p><input name="title" autofocus placeholder="¿Qué hay que hacer?"><label class="task-date-field">Fecha y hora<input v-model="taskDueAt" type="datetime-local"></label><div class="composer-options"><span>Compartida</span></div><button class="primary-button">Crear tarea</button></form></div>
