@@ -6,6 +6,7 @@ import { createTask as createTaskRequest, fetchTasks, updateTaskStatus } from '.
 import { createInvitation, fetchInvitations, revokeInvitation } from './services/invitations';
 import { createEvent, fetchEvents } from './services/events';
 import { fetchMembers, removeMember, updateMemberRole } from './services/members';
+import { decideAssignment, fetchPendingAssignments, proposeAssignment } from './services/assignments';
 
 const active = ref('Inicio');
 const homeSection = ref('workspaces');
@@ -28,6 +29,7 @@ const eventStart = ref('');
 const eventError = ref('');
 const members = ref([]);
 const memberError = ref('');
+const assignments = ref([]);
 const taskDueAt = ref('');
 const calendarView = ref('week');
 const calendarDate = ref('2026-10-22');
@@ -119,6 +121,12 @@ watch(() => workspaceStore.selectedId, async (workspaceId) => {
     try { events.value = (await fetchEvents(workspaceId)).data || []; } catch { events.value = []; }
     try { members.value = (await fetchMembers(workspaceId)).data || []; } catch { members.value = []; }
 }, { immediate: true });
+
+onMounted(async () => {
+    if (authenticated.value) {
+        try { assignments.value = (await fetchPendingAssignments()).data || []; } catch { assignments.value = []; }
+    }
+});
 
 async function submitAuth() {
     authError.value = '';
@@ -225,6 +233,16 @@ async function kickMember(member) {
     try { await removeMember(workspaceStore.selectedId, member.id); member.active = 0; } catch (error) { memberError.value = error.message; }
 }
 
+async function decideAssignmentRequest(assignment, decision) {
+    await decideAssignment(assignment.id, decision);
+    assignments.value = assignments.value.filter((item) => item.id !== assignment.id);
+}
+
+async function assignTask(task, event) {
+    if (!workspaceStore.selectedId || !task.id || !event.target.value) return;
+    try { await proposeAssignment(workspaceStore.selectedId, task.id, Number(event.target.value)); event.target.value = ''; } catch (error) { memberError.value = error.message; }
+}
+
 async function toggleTask(task) {
     const nextStatus = task.done ? 'pending' : 'completed';
     task.done = !task.done;
@@ -271,7 +289,7 @@ async function toggleTask(task) {
                     <div class="task-icon" :class="`task-${task.color}`">▣</div><div class="task-content"><strong>{{ task.title }}</strong><span>{{ task.time }} · {{ task.category }}</span></div><div class="avatar avatar-pink">M</div>
                 </article></div>
             </section>
-            <section v-if="active === 'Inicio'" class="request-card"><div class="request-icon">✉</div><div><strong>Tienes 1 solicitud</strong><p>María quiere asignarte<br>“Recoger a Leo”.</p></div><span class="request-arrow">›</span></section>
+            <section v-if="active === 'Inicio' && assignments.length" class="request-card"><div class="request-icon">✉</div><div><strong>Tienes {{ assignments.length }} solicitud{{ assignments.length === 1 ? '' : 'es' }}</strong><p>{{ assignments[0].proposed_by }} quiere asignarte<br>“{{ assignments[0].title }}”.</p><div class="assignment-actions"><button @click="decideAssignmentRequest(assignments[0], 'accepted')">Aceptar</button><button @click="decideAssignmentRequest(assignments[0], 'rejected')">Rechazar</button></div></div></section>
             <section v-if="active === 'Inicio'" class="activity-card"><div class="section-heading"><h2>Actividad del hogar</h2><button class="text-button">Ver más ›</button></div><p>🟣 María ha completado “Comprar regalo”.</p><p>🟢 Leo ha aceptado una tarea.</p></section>
             <section v-if="active === 'Calendario'" class="content-view"><div class="section-heading"><h2>{{ selectedCalendarDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }) }}</h2><div class="calendar-controls"><button @click="moveCalendar(-1)">‹</button><button @click="moveCalendar(1)">›</button></div></div><div class="calendar-views"><button :class="{ selected: calendarView === 'day' }" @click="calendarView = 'day'">Día</button><button :class="{ selected: calendarView === 'week' }" @click="calendarView = 'week'">Semana</button><button :class="{ selected: calendarView === 'month' }" @click="calendarView = 'month'">Mes</button></div><div v-if="calendarView !== 'month'" class="calendar-strip"><span v-for="day in calendarDays" :key="day.iso">{{ day.label }}</span><strong v-for="day in calendarDays" :key="`number-${day.iso}`" :class="{ today: day.iso === calendarDate }" @click="calendarDate = day.iso">{{ day.number }}</strong></div><div v-else class="month-grid"><button v-for="day in monthDays" :key="day.iso" :class="{ muted: !day.current, today: day.iso === calendarDate }" @click="calendarDate = day.iso">{{ day.number }}</button></div><h3>{{ selectedCalendarDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }) }}</h3><article v-for="event in calendarEvents" :key="`event-${event.id}`" class="calendar-task event-task"><time>{{ formatEventTime(event) }}</time><div><strong>{{ event.title }}</strong><span>Cita compartida</span></div></article><p v-if="!calendarEvents.length" class="calendar-empty">No hay citas para este día.</p><form class="event-create" @submit.prevent="addEvent"><input v-model="eventTitle" required placeholder="Nueva cita"><input v-model="eventStart" required type="datetime-local"><button class="primary-button">Añadir al calendario</button><p v-if="eventError" class="auth-error">{{ eventError }}</p></form></section>
             <section v-if="active === 'Tareas'" class="content-view"><div class="section-heading"><h2>Tareas</h2><button class="text-button">Filtrar</button></div><div class="task-filters"><span class="selected-filter">Todas</span><span>Compartidas</span><span>Privadas</span></div><div class="task-list"><article v-for="task in tasks" :key="`all-${task.title}`" class="task-card"><button class="check-button" :class="{ checked: task.done }" @click="toggleTask(task)">{{ task.done ? '✓' : '' }}</button><div class="task-icon" :class="`task-${task.color}`">▣</div><div class="task-content"><strong>{{ task.title }}</strong><span>{{ task.time }} · {{ task.category }}</span></div></article></div></section>
