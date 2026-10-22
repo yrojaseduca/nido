@@ -1,0 +1,27 @@
+{
+    "name": "ParkPass",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/node:2": {
+            "version": "20"
+        },
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+            "moby": false
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "bmewburn.vscode-intelephense-client",
+                "Vue.volar",
+                "dbaeumer.vscode-eslint",
+                "ms-azuretools.vscode-docker"
+            ]
+        }
+    },
+    "remoteUser": "vscode",
+    "postCreateCommand": "sudo chown -R vscode:vscode /workspaces 2>/dev/null || true",
+    "postStartCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} 2>/dev/null || true"
+}

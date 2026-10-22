@@ -1,0 +1,94 @@
+services:
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    working_dir: /var/www/backend
+    volumes:
+      - ./backend:/var/www/backend
+      - ./Makefile:/var/www/backend/Makefile
+      - ./docker/php/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini:ro
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini:ro
+      - ./docker/php/zz-fpm-env.conf:/usr/local/etc/php-fpm.d/zz-fpm-env.conf:ro
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DB_HOST: ${DB_HOST:-mariadb}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DATABASE: ${DB_DATABASE:-nido}
+      DB_USERNAME: ${DB_USERNAME:-nido}
+      DB_PASSWORD: ${DB_PASSWORD:-nido}
+      PUSHER_APP_ID: ${PUSHER_APP_ID:-}
+      PUSHER_APP_KEY: ${PUSHER_APP_KEY:-}
+      PUSHER_APP_SECRET: ${PUSHER_APP_SECRET:-}
+      PUSHER_APP_CLUSTER: ${PUSHER_APP_CLUSTER:-eu}
+      PHP_IDE_CONFIG: serverName=localhost
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - appnet
+
+  mariadb:
+    image: mariadb:11.4
+    restart: always
+    environment:
+      MARIADB_DATABASE: ${DB_DATABASE:-nido}
+      MARIADB_USER: ${DB_USERNAME:-nido}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD}
+      TZ: Europe/Madrid
+    volumes:
+      - db-data:/var/lib/mysql
+    ports:
+      - "127.0.0.1:3307:3306"
+    healthcheck:
+      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - appnet
+
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    ports:
+      - "${HOST_PORT}:80"
+    environment:
+      - PROJECT_NAME=${PROJECT_NAME}
+    volumes:
+      - ./backend/public:/var/www/backend/public
+      - ./default.conf.template:/etc/nginx/conf.d/default.conf
+      # OPCIONAL: Para DEV mapeamos los archivos estáticos en vivo si hiciera falta
+      - ./frontend/dist:/var/www/frontend
+    depends_on:
+      php:
+        condition: service_started
+    networks:
+      - appnet
+
+  node:
+    build:
+      context: .
+      dockerfile: docker/node/Dockerfile
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    expose:
+      - "5173"
+    networks:
+      - appnet
+    command: /usr/local/bin/vue-dev-entrypoint.sh
+    profiles:
+      - dev # <-- Esto hace que Docker ignore este servicio en producción a menos que lo llamemos
+
+networks:
+  appnet:
+    driver: bridge
+
+volumes:
+  db-data:

@@ -1,0 +1,22 @@
+---
+description: ParkPass project rules
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+# Project Rules
+
+Use `AGENTS.md` as the canonical project context.
+
+- Backend: PHP 8.5 with Fat-Free Framework.
+- Frontend: Vue 3 with Composition API, Pinia, PrimeVue and Tailwind CSS.
+- Use 4 spaces for indentation.
+- PHP files must use `declare(strict_types=1);`.
+- Follow backend flow: Routes -> Validators -> Controllers -> Services -> Repositories -> Models/Mappers/Resources.
+- Controllers must not contain business logic or SQL.
+- Frontend modules live in `frontend/src/modules/[module]/`.
+- Use the root `Makefile` for commands.
+- Do not use `php artisan`.
+- Keep Docker-related files under `docker/`.
+

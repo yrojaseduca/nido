@@ -1,0 +1,46 @@
+node_modules/
+jspm_packages/
+web_modules/
+
+# Archivos de Docker y Logs
+*.log
+logs
+/npm-debug.log*
+.docker/
+
+# Archivos temporales de entorno/configuración local
+.env
+.env.local
+.env.*.local
+.env.portainer
+
+# Archivos ocultos de VS Code, IDE y del sistema
+.vscode/
+.idea/
+.agents/
+.codex/
+.DS_Store
+Thumbs.db
+php.xml
+
+#backend
+/backend/vendor/
+/backend/var/
+/backend/.phpunit.cache/
+/backend/storage/brands/*.json
+/backend/storage/access-groups/*.json
+/backend/storage/secrets/*
+/backend/storage/assets/groups/*
+!/backend/storage/assets/groups/parking-prueba-a/
+!/backend/storage/assets/groups/parking-prueba-a/logo.png
+/backend/storage/brand-media/*
+!/backend/storage/assets/groups/quick/
+!/backend/storage/assets/groups/quick/logo.png
+!/backend/storage/brand-media/quick-default/
+!/backend/storage/brand-media/quick-default/hero.webm
+
+#frontend
+/frontend/node_modules/
+/frontend/dist/
+/frontend/dist-android/
+/frontend/dist-ssr/

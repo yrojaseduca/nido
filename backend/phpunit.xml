@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://schema.getcomposer.org/phpunit.xsd"
+        bootstrap="tests/bootstrap.php"
+        colors="true"
+        failOnWarning="true"
+        failOnRisky="true"
+        cacheDirectory=".phpunit.cache"
+        processIsolation="true"
+        displayDetailsOnTestsThatTriggerWarnings="true"
+        displayDetailsOnTestsThatTriggerErrors="true"
+        displayDetailsOnTestsThatTriggerNotices="true"
+>
+    <testsuites>
+        <testsuite name="Backend Test Suite">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <env name="APP_ENV" value="test" force="true"/>
+        <env name="DB_DATABASE" value="test" force="true"/>
+    </php>
+</phpunit>

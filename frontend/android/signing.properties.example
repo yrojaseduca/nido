@@ -1,0 +1,5 @@
+# Copy to signing.properties (ignored by Git). Paths are relative to android/.
+storeFile=signing/nido-release.jks
+storePassword=REPLACE_LOCALLY
+keyAlias=nido
+keyPassword=REPLACE_LOCALLY

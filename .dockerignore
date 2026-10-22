@@ -1,0 +1,16 @@
+.git
+.github
+.cursor
+**/.env
+.env
+.env.*
+!.env.example
+backend/vendor
+backend/storage
+frontend/node_modules
+frontend/dist
+frontend/dist-android
+frontend/android
+docs
+**/*.md
+**/.gitkeep
