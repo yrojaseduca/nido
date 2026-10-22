@@ -4,6 +4,8 @@
         <meta charset="UTF-8" />
         <meta name="description" content="Nido, organización del hogar y responsabilidades familiares." />
         <meta name="robots" content="noindex, nofollow" />
+        <meta name="theme-color" content="#6655ed" />
+        <link rel="manifest" href="/manifest.webmanifest" />
         <meta
             name="viewport"
             content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
@@ -13,6 +15,7 @@
     <body>
         <div id="app"></div>
         <script type="module" src="/src/main.js"></script>
+        <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
         <script type="text/javascript">
             (function (c, l, a, r, i, t, y) {
                 c[a] = c[a] || function () {

@@ -24,7 +24,7 @@ fi
 docker run --rm \
     -v "${BACKEND_DIR}:${PHP_WORKDIR}" \
     -w "${PHP_WORKDIR}" \
-    php:8.2.18-cli-bookworm \
+    php:8.5-cli-bookworm \
     bash -ec '
         apt-get update -qq
         apt-get install -y -qq --no-install-recommends git unzip curl \

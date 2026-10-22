@@ -1,0 +1,19 @@
+.calendar-controls { display: flex; gap: 6px; }
+.calendar-controls button { width: 30px; height: 30px; border: 0; border-radius: 9px; background: #fff; color: #172346; box-shadow: 0 3px 10px #bdcada30; font-size: 20px; line-height: 1; }
+.calendar-views { display: flex; gap: 6px; padding: 4px; border-radius: 11px; background: #edf0f7; }
+.calendar-views button { flex: 1; padding: 8px 4px; border: 0; border-radius: 8px; background: transparent; color: #71809c; font-size: 12px; }
+.calendar-views button.selected { background: #6655ed; color: #fff; font-weight: 700; box-shadow: 0 4px 10px #6655ed44; }
+.month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; padding: 12px 8px; border-radius: 16px; background: #fff; }
+.month-grid button { aspect-ratio: 1; border: 0; border-radius: 50%; background: transparent; color: #273656; font-size: 12px; }
+.month-grid button.muted { color: #b4bed0; }
+.month-grid button.today { background: #6655ed; color: #fff; font-weight: 700; }
+.calendar-empty { padding: 18px; border-radius: 14px; background: #fff; color: #71809c; font-size: 12px; text-align: center; }
+.event-create { display: grid; gap: 10px; margin-top: 8px; padding: 18px; border: 1px solid #e8edf5; border-radius: 17px; background: #fff; box-shadow: 0 5px 18px #bdcada22; }
+.event-create::before { content: 'Nueva cita'; color: #172346; font-size: 16px; font-weight: 700; }
+.event-create input { width: 100%; padding: 12px 13px; border: 1px solid #dce4f0; border-radius: 10px; background: #fbfcff; color: #172346; outline-color: #6655ed; }
+.event-create input[type='datetime-local'] { color: #596782; }
+.event-create .primary-button { margin-top: 2px; }
+.home-tabs { display: flex; gap: 6px; width: 100%; margin: 16px 0; padding: 4px; border-radius: 11px; background: #edf0f7; }
+.home-tabs button { flex: 1; padding: 9px; border: 0; border-radius: 8px; background: transparent; color: #71809c; font-size: 12px; }
+.home-tabs button.selected { background: #6655ed; color: #fff; font-weight: 700; }
+.task-date-field { display: grid; gap: 6px; color: #354464; font-size: 12px; font-weight: 700; }.task-date-field input { width: 100%; margin-top: 4px; padding: 12px; border: 1px solid #dce4f0; border-radius: 10px; background: #fbfcff; }
