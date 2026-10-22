@@ -14,6 +14,7 @@ use App\Services\TaskService;
 use App\Services\InvitationService;
 use App\Services\EventService;
 use App\Services\MemberService;
+use App\Services\AssignmentService;
 
 return static function (Base $f3): void {
     $f3->route('GET /api/health', static function (): void {
@@ -258,5 +259,26 @@ return static function (Base $f3): void {
         $member = $user === null ? null : (new WorkspaceRepository())->findMember($workspaceId, (int) $user['id']);
         if ($member === null || $member['role'] !== 'admin') { JsonResponse::send(['error' => 'Forbidden'], $user === null ? 401 : 403); return; }
         try { $removed = (new MemberService())->remove($workspaceId, (int) $f3->get('PARAMS.memberId')); JsonResponse::send(['data' => ['removed' => $removed]], $removed ? 200 : 404); } catch (\Throwable $exception) { JsonResponse::send(['error' => $exception->getMessage()], 422); }
+    });
+
+    $f3->route('GET /api/assignments/pending', static function (): void {
+        $user = (new SessionAuthenticator())->authenticate((string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ''));
+        if ($user === null) { JsonResponse::send(['error' => 'Unauthenticated'], 401); return; }
+        JsonResponse::send(['data' => (new AssignmentService())->pendingForUser((int) $user['id'])]);
+    });
+
+    $f3->route('POST /api/workspaces/@workspaceId/tasks/@taskId/assignments', static function (Base $f3): void {
+        $user = (new SessionAuthenticator())->authenticate((string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ''));
+        $workspaceId = (string) $f3->get('PARAMS.workspaceId');
+        if ($user === null || (new WorkspaceRepository())->findMember($workspaceId, (int) ($user['id'] ?? 0)) === null) { JsonResponse::send(['error' => 'Workspace not found'], 404); return; }
+        try { $assignment = (new AssignmentService())->propose($workspaceId, (int) $f3->get('PARAMS.taskId'), (int) $user['id'], (int) (JsonRequest::body()['assigned_to_user_id'] ?? 0)); JsonResponse::send(['data' => $assignment], 201); } catch (\Throwable $exception) { JsonResponse::send(['error' => $exception->getMessage()], 422); }
+    });
+
+    $f3->route('PATCH /api/assignments/@assignmentId', static function (Base $f3): void {
+        $user = (new SessionAuthenticator())->authenticate((string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ''));
+        if ($user === null) { JsonResponse::send(['error' => 'Unauthenticated'], 401); return; }
+        $decision = (string) (JsonRequest::body()['decision'] ?? '');
+        $updated = (new AssignmentService())->decide((int) $f3->get('PARAMS.assignmentId'), (int) $user['id'], $decision);
+        JsonResponse::send(['data' => ['updated' => $updated]], $updated ? 200 : 404);
     });
 };
