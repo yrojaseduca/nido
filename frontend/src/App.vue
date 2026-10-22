@@ -36,6 +36,9 @@ const detailError = ref('');
 const checklistTitle = ref('');
 const commentBody = ref('');
 const taskDueAt = ref('');
+const taskEstimatedMinutes = ref('');
+const taskEffort = ref('');
+const taskInstructions = ref('');
 const calendarView = ref('week');
 const calendarDate = ref('2026-10-22');
 const tasks = ref([
@@ -183,12 +186,13 @@ async function createTask(title) {
     if (!title.trim()) return;
     if (workspaceStore.selectedId) {
         try {
-            await createTaskRequest(workspaceStore.selectedId, title.trim(), 'shared', taskDueAt.value);
+            await createTaskRequest(workspaceStore.selectedId, title.trim(), 'shared', taskDueAt.value, { estimated_minutes: taskEstimatedMinutes.value ? Number(taskEstimatedMinutes.value) : null, effort: taskEffort.value ? Number(taskEffort.value) : null, instructions: taskInstructions.value });
             await fetchTasks(workspaceStore.selectedId).then((response) => {
                 tasks.value = (response.data || []).map(mapTask);
             });
             composerOpen.value = false;
             taskDueAt.value = '';
+            taskEstimatedMinutes.value = ''; taskEffort.value = ''; taskInstructions.value = '';
             return;
         } catch {
             // Fallback local para permitir seguir usando la interfaz durante el desarrollo.
@@ -198,6 +202,7 @@ async function createTask(title) {
     tasks.value.unshift({ title: title.trim(), time: 'Hoy', category: 'Hogar', color: 'blue', done: false });
     composerOpen.value = false;
     taskDueAt.value = '';
+    taskEstimatedMinutes.value = ''; taskEffort.value = ''; taskInstructions.value = '';
 }
 
 async function sendInvitation() {
@@ -327,6 +332,6 @@ async function toggleTask(task) {
         <div v-if="detailTask" class="modal-backdrop" @click.self="detailTask = null"><article class="task-detail"><button class="modal-close" @click="detailTask = null">×</button><h2>{{ detailTask.title }}</h2><p v-if="detailTask.instructions">{{ detailTask.instructions }}</p><h3>Checklist</h3><label v-for="item in detailTask.checklist" :key="item.id" class="checklist-item"><input type="checkbox" :checked="Boolean(item.completed)" @change="toggleChecklist(item)">{{ item.title }}</label><form @submit.prevent="addChecklist"><input v-model="checklistTitle" placeholder="Añadir elemento"><button class="primary-button">Añadir</button></form><h3>Comentarios</h3><p v-for="comment in detailTask.comments" :key="comment.id" class="task-comment"><strong>{{ comment.author }}</strong> {{ comment.body }}</p><form @submit.prevent="addComment"><input v-model="commentBody" placeholder="Escribe un comentario"><button class="primary-button">Comentar</button></form><p v-if="detailError" class="auth-error">{{ detailError }}</p></article></div>
         <button class="floating-action" aria-label="Crear tarea" @click="composerOpen = true">+</button>
         <nav class="bottom-nav"><button v-for="tab in tabs" :key="tab" class="nav-item" :class="{ active: active === tab }" @click="active = tab"><span class="nav-icon">{{ tab === 'Inicio' ? '⌂' : tab === 'Tareas' ? '✓' : tab === 'Balance' ? '◔' : tab === 'Calendario' ? '▣' : '♧' }}</span>{{ tab }}</button></nav>
-        <div v-if="composerOpen" class="modal-backdrop" @click.self="composerOpen = false"><form class="task-composer" @submit.prevent="createTask($event.target.title.value)"><button type="button" class="modal-close" @click="composerOpen = false">×</button><h2>Nueva tarea</h2><p>Añade algo para {{ workspaceStore.selectedWorkspace?.name || 'Nuestro hogar' }}</p><input name="title" autofocus placeholder="¿Qué hay que hacer?"><label class="task-date-field">Fecha y hora<input v-model="taskDueAt" type="datetime-local"></label><div class="composer-options"><span>Compartida</span></div><button class="primary-button">Crear tarea</button></form></div>
+        <div v-if="composerOpen" class="modal-backdrop" @click.self="composerOpen = false"><form class="task-composer" @submit.prevent="createTask($event.target.title.value)"><button type="button" class="modal-close" @click="composerOpen = false">×</button><h2>Nueva tarea</h2><p>Añade algo para {{ workspaceStore.selectedWorkspace?.name || 'Nuestro hogar' }}</p><input name="title" autofocus placeholder="¿Qué hay que hacer?"><label class="task-date-field">Fecha y hora<input v-model="taskDueAt" type="datetime-local"></label><label class="task-date-field">Minutos estimados<input v-model="taskEstimatedMinutes" type="number" min="1" placeholder="Ej. 30"></label><label class="task-date-field">Esfuerzo<select v-model="taskEffort"><option value="">Sin valorar</option><option value="1">1 · Muy bajo</option><option value="2">2 · Bajo</option><option value="3">3 · Medio</option><option value="4">4 · Alto</option><option value="5">5 · Muy alto</option></select></label><label class="task-date-field">Instrucciones<textarea v-model="taskInstructions" rows="2" placeholder="Detalles opcionales"></textarea></label><div class="composer-options"><span>Compartida</span></div><button class="primary-button">Crear tarea</button></form></div>
     </div>
 </template>

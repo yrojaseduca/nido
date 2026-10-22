@@ -132,7 +132,7 @@ return static function (Base $f3): void {
         $data = JsonRequest::body();
         try {
             $dueAt = isset($data['due_at']) && $data['due_at'] !== '' ? str_replace('T', ' ', (string) $data['due_at']) : null;
-            $task = (new TaskService())->create($workspaceId, (int) $user['id'], trim((string) ($data['title'] ?? '')), (string) ($data['visibility'] ?? 'shared'), $dueAt);
+            $task = (new TaskService())->create($workspaceId, (int) $user['id'], trim((string) ($data['title'] ?? '')), (string) ($data['visibility'] ?? 'shared'), $dueAt, isset($data['estimated_minutes']) ? (int) $data['estimated_minutes'] : null, isset($data['effort']) ? (int) $data['effort'] : null, isset($data['instructions']) ? trim((string) $data['instructions']) : null);
             JsonResponse::send(['data' => $task], 201);
         } catch (\Throwable) {
             JsonResponse::send(['error' => 'Invalid task data'], 422);

@@ -10,16 +10,16 @@ use RuntimeException;
 
 final class TaskService
 {
-    public function create(string $workspaceId, int $userId, string $title, string $visibility, ?string $dueAt = null): array
+    public function create(string $workspaceId, int $userId, string $title, string $visibility, ?string $dueAt = null, ?int $estimatedMinutes = null, ?int $effort = null, ?string $instructions = null): array
     {
-        if ($title === '' || !in_array($visibility, ['private', 'shared'], true)) {
+        if ($title === '' || !in_array($visibility, ['private', 'shared'], true) || ($effort !== null && ($effort < 1 || $effort > 5))) {
             throw new RuntimeException('Invalid task data');
         }
 
         $pdo = Connection::create();
         $statement = $pdo->prepare(
-            'INSERT INTO tasks (workspace_id, owner_user_id, title, visibility, due_at)
-             VALUES (:workspace_id, :owner_user_id, :title, :visibility, :due_at)'
+            'INSERT INTO tasks (workspace_id, owner_user_id, title, visibility, due_at, estimated_minutes, effort, instructions)
+             VALUES (:workspace_id, :owner_user_id, :title, :visibility, :due_at, :estimated_minutes, :effort, :instructions)'
         );
         $statement->execute([
             'workspace_id' => $workspaceId,
@@ -27,9 +27,12 @@ final class TaskService
             'title' => $title,
             'visibility' => $visibility,
             'due_at' => $dueAt,
+            'estimated_minutes' => $estimatedMinutes,
+            'effort' => $effort,
+            'instructions' => $instructions,
         ]);
 
-        return ['id' => (int) $pdo->lastInsertId(), 'workspace_id' => $workspaceId, 'title' => $title, 'visibility' => $visibility, 'status' => 'pending', 'due_at' => $dueAt];
+        return ['id' => (int) $pdo->lastInsertId(), 'workspace_id' => $workspaceId, 'title' => $title, 'visibility' => $visibility, 'status' => 'pending', 'due_at' => $dueAt, 'estimated_minutes' => $estimatedMinutes, 'effort' => $effort, 'instructions' => $instructions];
     }
 
     public function listForMember(string $workspaceId, int $userId): array

@@ -4,10 +4,10 @@ export function fetchTasks(workspaceId) {
     return apiRequest(`/workspaces/${workspaceId}/tasks`);
 }
 
-export function createTask(workspaceId, title, visibility = 'shared', dueAt = null) {
+export function createTask(workspaceId, title, visibility = 'shared', dueAt = null, details = {}) {
     return apiRequest(`/workspaces/${workspaceId}/tasks`, {
         method: 'POST',
-        body: JSON.stringify({ title, visibility, due_at: dueAt }),
+        body: JSON.stringify({ title, visibility, due_at: dueAt, ...details }),
     });
 }
 
