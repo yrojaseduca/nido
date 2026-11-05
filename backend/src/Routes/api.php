@@ -16,6 +16,7 @@ use App\Services\EventService;
 use App\Services\MemberService;
 use App\Services\AssignmentService;
 use App\Services\TaskDetailService;
+use App\Services\BalanceService;
 
 return static function (Base $f3): void {
     $f3->route('GET /api/health', static function (): void {
@@ -309,5 +310,12 @@ return static function (Base $f3): void {
         $data = JsonRequest::body();
         $updated = (new TaskDetailService())->updateChecklist((string) $f3->get('PARAMS.workspaceId'), (int) $f3->get('PARAMS.taskId'), (int) $f3->get('PARAMS.itemId'), (int) $user['id'], (bool) ($data['completed'] ?? false));
         JsonResponse::send(['data' => ['updated' => $updated]], $updated ? 200 : 404);
+    });
+
+    $f3->route('GET /api/workspaces/@workspaceId/balance', static function (Base $f3): void {
+        $user = (new SessionAuthenticator())->authenticate((string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ''));
+        $workspaceId = (string) $f3->get('PARAMS.workspaceId');
+        if ($user === null || (new WorkspaceRepository())->findMember($workspaceId, (int) ($user['id'] ?? 0)) === null) { JsonResponse::send(['error' => 'Workspace not found'], 404); return; }
+        JsonResponse::send(['data' => (new BalanceService())->summary($workspaceId)]);
     });
 };
